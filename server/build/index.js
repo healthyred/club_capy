@@ -1,18 +1,18 @@
 "use strict";
-const rpcIdFindMatch = 'find_match_js';
-let InitModule = function (ctx, logger, nk, initializer) {
+function InitModule(ctx, logger, nk, initializer) {
+    var rpcIdFindMatch = "find_match_js";
     initializer.registerRpc(rpcIdFindMatch, rpcFindMatch);
     initializer.registerMatch(moduleName, {
-        matchInit,
-        matchJoinAttempt,
-        matchJoin,
-        matchLeave,
-        matchLoop,
-        matchTerminate,
-        matchSignal,
+        matchInit: matchInit,
+        matchJoinAttempt: matchJoinAttempt,
+        matchJoin: matchJoin,
+        matchLeave: matchLeave,
+        matchLoop: matchLoop,
+        matchTerminate: matchTerminate,
+        matchSignal: matchSignal,
     });
-    logger.info('JavaScript logic loaded.');
-};
+    logger.info("JavaScript logic loaded.");
+}
 // The complete set of opcodes used for communication between clients and server.
 var OpCode;
 (function (OpCode) {
@@ -25,9 +25,9 @@ var OpCode;
     // A move the player wishes to make and sends to the server.
     OpCode[OpCode["MOVE"] = 101] = "MOVE";
 })(OpCode || (OpCode = {}));
-const moduleName = "club_capy";
-const tickRate = 5;
-const maxEmptySec = 30;
+var moduleName = "club_capy";
+var tickRate = 5;
+var maxEmptySec = 30;
 // Copyright 2020 The Nakama Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,14 +41,14 @@ const maxEmptySec = 30;
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-let rpcFindMatch = function (ctx, logger, nk, payload) {
+var rpcFindMatch = function (ctx, logger, nk, payload) {
     if (!ctx.userId) {
         throw Error('No user ID in context');
     }
     if (!payload) {
         throw Error('Expects payload.');
     }
-    let request = {};
+    var request = {};
     try {
         request = JSON.parse(payload);
     }
@@ -56,19 +56,19 @@ let rpcFindMatch = function (ctx, logger, nk, payload) {
         logger.error('Error parsing json message: %q', error);
         throw error;
     }
-    let matches;
+    var matches;
     try {
-        const query = `+label.open:1 +label.fast:${request.fast ? 1 : 0}`;
+        var query = "+label.open:1 +label.fast:".concat(request.fast ? 1 : 0);
         matches = nk.matchList(10, true, null, null, 1, query);
     }
     catch (error) {
         logger.error('Error listing matches: %v', error);
         throw error;
     }
-    let matchIds = [];
+    var matchIds = [];
     if (matches.length > 0) {
         // There are one or more ongoing matches the user could join.
-        matchIds = matches.map(m => m.matchId);
+        matchIds = matches.map(function (m) { return m.matchId; });
     }
     else {
         // No available matches found, create a new one.
@@ -80,7 +80,7 @@ let rpcFindMatch = function (ctx, logger, nk, payload) {
             throw error;
         }
     }
-    let res = { matchIds };
+    var res = { matchIds: matchIds };
     return JSON.stringify(res);
 };
 // Copyright 2020 The Nakama Authors
@@ -96,8 +96,8 @@ let rpcFindMatch = function (ctx, logger, nk, payload) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-let matchInit = function (ctx, logger, nk, params) {
-    const fast = !!params['fast'];
+var matchInit = function (ctx, logger, nk, params) {
+    var fast = !!params["fast"];
     var label = {
         open: 1,
         fast: 0,
@@ -113,12 +113,12 @@ let matchInit = function (ctx, logger, nk, params) {
         joinsInProgress: 0,
     };
     return {
-        state,
-        tickRate,
+        state: state,
+        tickRate: tickRate,
         label: JSON.stringify(label),
     };
 };
-let matchJoinAttempt = function (ctx, logger, nk, dispatcher, tick, state, presence, metadata) {
+var matchJoinAttempt = function (ctx, logger, nk, dispatcher, tick, state, presence, metadata) {
     // Check if it's a user attempting to rejoin after a disconnect.
     if (presence.userId in state.presences) {
         if (state.presences[presence.userId] === null) {
@@ -134,7 +134,7 @@ let matchJoinAttempt = function (ctx, logger, nk, dispatcher, tick, state, prese
             return {
                 state: state,
                 accept: false,
-                rejectMessage: 'already joined',
+                rejectMessage: "already joined",
             };
         }
     }
@@ -143,93 +143,116 @@ let matchJoinAttempt = function (ctx, logger, nk, dispatcher, tick, state, prese
         return {
             state: state,
             accept: false,
-            rejectMessage: 'match full',
+            rejectMessage: "match full",
         };
     }
     // New player attempting to connect.
     state.joinsInProgress++;
     return {
-        state,
+        state: state,
         accept: true,
     };
 };
 function randomIntFromInterval(min, max) {
+    // min and max included
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
-let matchJoin = function (ctx, logger, nk, dispatcher, tick, state, presences) {
-    const t = msecToSec(Date.now());
-    for (const presence of presences) {
+var matchJoin = function (ctx, logger, nk, dispatcher, tick, state, presences) {
+    var t = msecToSec(Date.now());
+    for (var _i = 0, presences_1 = presences; _i < presences_1.length; _i++) {
+        var presence = presences_1[_i];
         state.emptyTicks = 0;
         state.presences[presence.userId] = presence;
         state.joinsInProgress--;
-        let new_position = [randomIntFromInterval(-100, 100), randomIntFromInterval(-100, 100)];
-        state.playerPositions.playerIds.push({ playerId: presence.userId, position: new_position });
-        let update = {
-            playerPositions: state.playerPositions
+        var new_position = [
+            randomIntFromInterval(-100, 100),
+            randomIntFromInterval(-100, 100),
+        ];
+        state.playerPositions.playerIds.push({
+            playerId: presence.userId,
+            position: new_position,
+        });
+        var update = {
+            playerPositions: state.playerPositions,
         };
         dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(update));
     }
-    return { state };
+    return { state: state };
 };
-let matchLeave = function (ctx, logger, nk, dispatcher, tick, state, presences) {
-    for (let presence of presences) {
+var matchLeave = function (ctx, logger, nk, dispatcher, tick, state, presences) {
+    var _loop_1 = function (presence) {
         logger.info("Player: %s left match: %s.", presence.userId, ctx.matchId);
         state.presences[presence.userId] = null;
         // Remove positions from the game
-        state.playerPositions.playerIds.filter((value) => {
+        state.playerPositions.playerIds.filter(function (value) {
             return value.playerId !== presence.userId;
         });
+    };
+    for (var _i = 0, presences_2 = presences; _i < presences_2.length; _i++) {
+        var presence = presences_2[_i];
+        _loop_1(presence);
     }
-    return { state };
+    return { state: state };
 };
-let matchLoop = function (ctx, logger, nk, dispatcher, tick, state, messages) {
-    logger.debug('Running match loop. Tick: %d', tick);
+var matchLoop = function (ctx, logger, nk, dispatcher, tick, state, messages) {
+    logger.debug("Running match loop. Tick: %d", tick);
     if (connectedPlayers(state) + state.joinsInProgress === 0) {
         state.emptyTicks++;
         if (state.emptyTicks >= maxEmptySec * tickRate) {
             // Match has been empty for too long, close it.
-            logger.info('closing idle match');
+            logger.info("closing idle match");
             return null;
         }
     }
-    for (const message of messages) {
+    for (var _i = 0, messages_1 = messages; _i < messages_1.length; _i++) {
+        var message = messages_1[_i];
         switch (message.opCode) {
             case OpCode.MOVE:
-                let sender = message.sender;
-                logger.debug('Received move message from user: %v', sender);
-                let msg = {};
+                var sender = message.sender;
+                logger.debug("Received move message from user: %v", sender);
+                var msg = {};
                 try {
                     msg = JSON.parse(nk.binaryToString(message.data));
                 }
                 catch (error) {
                     // Client sent bad data.
                     dispatcher.broadcastMessage(OpCode.REJECTED, null, [message.sender]);
-                    logger.debug('Bad data received: %v', error);
+                    logger.debug("Bad data received: %v", error);
                     continue;
                 }
                 // TODO: fix bounds later
-                let indexToUpdate = state.playerPositions.playerIds.findIndex(playerPosition => playerPosition.playerId === sender.userId);
-                state.playerPositions.playerIds[indexToUpdate] = { playerId: sender.userId, position: msg.position };
+                var indexToUpdate = -1;
+                for (var i = 0; i < state.playerPositions.playerIds.length; i++) {
+                    if (state.playerPositions.playerIds[i].playerId === sender.userId) {
+                        indexToUpdate = i;
+                        break;
+                    }
+                }
+                state.playerPositions.playerIds[indexToUpdate] = {
+                    playerId: sender.userId,
+                    position: msg.position,
+                };
         }
     }
-    let outgoingMsg = {
-        playerPositions: state.playerPositions
+    var outgoingMsg = {
+        playerPositions: state.playerPositions,
     };
     dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(outgoingMsg));
-    return { state };
+    return { state: state };
 };
 function msecToSec(time) {
     return time * 1000;
 }
-let matchTerminate = function (ctx, logger, nk, dispatcher, tick, state, graceSeconds) {
-    return { state };
+var matchTerminate = function (ctx, logger, nk, dispatcher, tick, state, graceSeconds) {
+    return { state: state };
 };
-let matchSignal = function (ctx, logger, nk, dispatcher, tick, state) {
-    return { state };
+var matchSignal = function (ctx, logger, nk, dispatcher, tick, state) {
+    return { state: state };
 };
 function connectedPlayers(s) {
-    let count = 0;
-    for (const p of Object.keys(s.presences)) {
+    var count = 0;
+    for (var _i = 0, _a = Object.keys(s.presences); _i < _a.length; _i++) {
+        var p = _a[_i];
         if (p !== null) {
             count++;
         }
