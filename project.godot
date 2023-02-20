@@ -104,7 +104,7 @@ _global_script_class_icons={
 
 [application]
 
-config/name="Club Capy"
+config/name="ClubCapy"
 run/main_scene="res://Node2D.tscn"
 config/icon="res://icon.png"
 
