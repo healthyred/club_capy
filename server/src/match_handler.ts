@@ -155,7 +155,7 @@ let matchLoop: nkruntime.MatchLoopFunction<State> = function (
   state: State,
   messages: nkruntime.MatchMessage[]
 ) {
-  logger.debug("Running match loop. Tick: %d", tick);
+  logger.error("Running match loop. Tick: %d", tick);
 
   if (connectedPlayers(state) + state.joinsInProgress === 0) {
     state.emptyTicks++;
@@ -198,6 +198,7 @@ let matchLoop: nkruntime.MatchLoopFunction<State> = function (
   let outgoingMsg: UpdateMessage = {
     playerPositions: state.playerPositions,
   };
+  logger.debug("Sending outgoing message %v", outgoingMsg);
   dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(outgoingMsg));
 
   return { state };
