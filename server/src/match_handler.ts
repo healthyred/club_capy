@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// import {Opcode, PlayerPosition, PlayerPositionList, Message} from './messages';
-
 const moduleName = "club_capy";
 const tickRate = 5;
 const maxEmptySec = 30;
@@ -31,105 +29,158 @@ interface State {
     // label: string
 }
 
-// let matchInit: nkruntime.MatchInitFunction<State> = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, params: {[key: string]: string}) {
-//     var state: State = {
-//         playerPositions: [],
-//         emptyTicks: 0,
-//         presences: {},
-//         joinsInProgress: 0,
-//     }
+// The complete set of opcodes used for communication between clients and server.
+enum OpCode {
+	// New game round starting.
+	START = 1,
+	// Update to the state of an ongoing round.
+	UPDATE = 2,
+	// Move was rejected.
+	REJECTED = 4,
+    // A move the player wishes to make and sends to the server.
+	MOVE = 101
+}
 
-//     return {
-//         state,
-//         tickRate,
-//         label: JSON.stringify(label),
-//     }
-// }
+type PlayerPosition = {
+    // Player IDs
+    playerId: String
+    // Position from a range of -100,100 for x, y  game map coordinates
+    position: [number, number]
+}
+type PlayerPositionList = { 
+    // Player Id list
+    playerIds: PlayerPosition[]
+}
+type Message = StartMessage|UpdateMessage|MoveMessage|RpcFindMatchRequest|RpcFindMatchResponse
 
-// let matchJoinAttempt: nkruntime.MatchJoinAttemptFunction<State> = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State, presence: nkruntime.Presence, metadata: {[key: string]: any}) {
-//     // Check if it's a user attempting to rejoin after a disconnect.
-//     if (presence.userId in state.presences) {
-//         if (state.presences[presence.userId] === null) {
-//             // User rejoining after a disconnect.
-//             state.joinsInProgress++;
-//             return {
-//                 state: state,
-//                 accept: false,
-//             }
-//         } else {
-//             // User attempting to join from 2 different devices at the same time.
-//             return {
-//                 state: state,
-//                 accept: false,
-//                 rejectMessage: 'already joined',
-//             }
-//         }
-//     }
+// Message data sent by server to clients representing a new game round starting.
+interface StartMessage {
+    // The current state of the board.
+    playerPositions: PlayerPositionList
+}
 
-//     // Check if match is full.
-//     if (connectedPlayers(state) + state.joinsInProgress >= 2) {
-//         return {
-//             state: state,
-//             accept: false,
-//             rejectMessage: 'match full',
-//         };
-//     }
+// A game state update sent by the server to clients.
+interface UpdateMessage {
+    // The current state of the board.
+    playerPositions: PlayerPositionList
+}
 
-//     // New player attempting to connect.
-//     state.joinsInProgress++;
-//     return {
-//         state,
-//         accept: true,
-//     }
-// }
+// A player intends to make a move.
+interface MoveMessage {
+    // Position from a range of -100,100 for x, y  game map coordinates
+    position: [number, number]
+}
 
-// let matchJoin: nkruntime.MatchJoinFunction<State> = function(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State, presences: nkruntime.Presence[]) {
-//     const t = msecToSec(Date.now());
+// Payload for an RPC request to find a match.
+interface RpcFindMatchRequest {
+    // User can choose a fast or normal speed match.
+    fast: boolean
+}
 
-//     for (const presence of presences) {
-//         state.emptyTicks = 0;
-//         state.presences[presence.userId] = presence;
-//         state.joinsInProgress--;
+// Payload for an RPC response containing match IDs the user can join.
+interface RpcFindMatchResponse {
+    // One or more matches that fit the user's request.
+    matchIds: string[]
+}
 
-//         // Check if we must send a message to this user to update them on the current game state.
-//         if (state.playing) {
-//             // There's a game still currently in progress, the player is re-joining after a disconnect. Give them a state update.
-//             let update: UpdateMessage = {
-//                 board: state.board,
-//                 mark: state.mark,
-//                 deadline: t + Math.floor(state.deadlineRemainingTicks/tickRate),
-//             }
-//             // Send a message to the user that just joined.
-//             dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(update));
-//         } else if (state.board.length !== 0 && Object.keys(state.marks).length !== 0 && state.marks[presence.userId]) {
-//             logger.debug('player %s rejoined game', presence.userId);
-//             // There's no game in progress but we still have a completed game that the user was part of.
-//             // They likely disconnected before the game ended, and have since forfeited because they took too long to return.
-//             let done: DoneMessage = {
-//                 board: state.board,
-//                 winner: state.winner,
-//                 winnerPositions: state.winnerPositions,
-//                 nextGameStart: t + Math.floor(state.nextGameRemainingTicks/tickRate)
-//             }
-//             // Send a message to the user that just joined.
-//             dispatcher.broadcastMessage(OpCode.DONE, JSON.stringify(done))
-//         }
-//     }
+interface MatchLabel {
+    open: number
+    fast: number
+}
 
-//     // Check if match was open to new players, but should now be closed.
-//     if (Object.keys(state.presences).length >= 2 && state.label.open != 0) {
-//         state.label.open = 0;
-//         const labelJSON = JSON.stringify(state.label);
-//         dispatcher.matchLabelUpdate(labelJSON);
-//     }
+let matchInit: nkruntime.MatchInitFunction<State> = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, params: {[key: string]: string}) {
+    const fast = !!params['fast'];
 
-//     return {state};
-// }
+    var label: MatchLabel = {
+        open: 1,
+        fast: 0,
+    }
+    if (fast) {
+        label.fast = 1;
+    }
+    
+    var state: State = {
+        // label: label,
+        playerPositions: { playerIds: []},
+        emptyTicks: 0,
+        presences: {},
+        joinsInProgress: 0,
+    }
+
+    return {
+        state,
+        tickRate,
+        label: JSON.stringify(label),
+    }
+}
+
+let matchJoinAttempt: nkruntime.MatchJoinAttemptFunction<State> = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State, presence: nkruntime.Presence, metadata: {[key: string]: any}) {
+    // Check if it's a user attempting to rejoin after a disconnect.
+    if (presence.userId in state.presences) {
+        if (state.presences[presence.userId] === null) {
+            // User rejoining after a disconnect.
+            state.joinsInProgress++;
+            return {
+                state: state,
+                accept: false,
+            }
+        } else {
+            // User attempting to join from 2 different devices at the same time.
+            return {
+                state: state,
+                accept: false,
+                rejectMessage: 'already joined',
+            }
+        }
+    }
+
+    // Check if match is full.
+    if (connectedPlayers(state) + state.joinsInProgress >= 10) {
+        return {
+            state: state,
+            accept: false,
+            rejectMessage: 'match full',
+        };
+    }
+
+    // New player attempting to connect.
+    state.joinsInProgress++;
+    return {
+        state,
+        accept: true,
+    }
+}
+
+function randomIntFromInterval(min: number, max: number) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+  }
+
+let matchJoin: nkruntime.MatchJoinFunction<State> = function(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State, presences: nkruntime.Presence[]) {
+    const t = msecToSec(Date.now());
+    for (const presence of presences) {
+        state.emptyTicks = 0;
+        state.presences[presence.userId] = presence;
+        state.joinsInProgress--;
+        let new_position: [number, number] = [randomIntFromInterval(-100, 100), randomIntFromInterval(-100, 100)]
+        state.playerPositions.playerIds.push({playerId: presence.userId, position: new_position})
+
+        let update: UpdateMessage = {
+            playerPositions: state.playerPositions
+        }
+        dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(update))
+    }
+    return {state};
+}
+
 
 let matchLeave: nkruntime.MatchLeaveFunction<State> = function(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State, presences: nkruntime.Presence[]) {
     for (let presence of presences) {
         logger.info("Player: %s left match: %s.", presence.userId, ctx.matchId);
         state.presences[presence.userId] = null;
+        // Remove positions from the game
+        state.playerPositions.playerIds.filter((value) => {
+            return value.playerId !== presence.userId;
+        });
     }
 
     return {state};
@@ -147,73 +198,11 @@ let matchLoop: nkruntime.MatchLoopFunction<State> = function(ctx: nkruntime.Cont
         }
     }
 
-    let t = msecToSec(Date.now());
-
-    // If there's no game in progress check if we can (and should) start one!
-    if (!state.playing) {
-        // Between games any disconnected users are purged, there's no in-progress game for them to return to anyway.
-        for (let userID in state.presences) {
-            if (state.presences[userID] === null) {
-                delete state.presences[userID];
-            }
-        }
-
-        // Check if we need to update the label so the match now advertises itself as open to join.
-        if (Object.keys(state.presences).length < 2 && state.label.open != 1) {
-            state.label.open = 1;
-            let labelJSON = JSON.stringify(state.label);
-            dispatcher.matchLabelUpdate(labelJSON);
-        }
-
-        // Check if we have enough players to start a game.
-        if (Object.keys(state.presences).length < 2) {
-            return { state };
-        }
-
-        // Check if enough time has passed since the last game.
-        if (state.nextGameRemainingTicks > 0) {
-            state.nextGameRemainingTicks--
-            return { state };
-        }
-
-        // We can start a game! Set up the game state and assign the marks to each player.
-        state.playing = true;
-        state.board = new Array(9);
-        state.marks = {};
-        let marks = [Mark.X, Mark.O];
-        Object.keys(state.presences).forEach(userId => {
-            state.marks[userId] = marks.shift() ?? null;
-        });
-        state.mark = Mark.X;
-        state.winner = null;
-        state.winnerPositions = null;
-        state.deadlineRemainingTicks = calculateDeadlineTicks(state.label);
-        state.nextGameRemainingTicks = 0;
-
-        // Notify the players a new game has started.
-        let msg: StartMessage = {
-            board: state.board,
-            marks: state.marks,
-            mark: state.mark,
-            deadline: t + Math.floor(state.deadlineRemainingTicks / tickRate),
-        }
-        dispatcher.broadcastMessage(OpCode.START, JSON.stringify(msg));
-
-        return { state };
-    }
-
-    // There's a game in progresstate. Check for input, update match state, and send messages to clientstate.
     for (const message of messages) {
         switch (message.opCode) {
             case OpCode.MOVE:
-                logger.debug('Received move message from user: %v', state.marks);
-                let mark = state.marks[message.sender.userId] ?? null;
-                if (mark === null || state.mark != mark) {
-                    // It is not this player's turn.
-                    dispatcher.broadcastMessage(OpCode.REJECTED, null, [message.sender]);
-                    continue;
-                }
-
+                let sender = message.sender;
+                logger.debug('Received move message from user: %v', sender);
                 let msg = {} as MoveMessage;
                 try {
                     msg = JSON.parse(nk.binaryToString(message.data));
@@ -223,86 +212,24 @@ let matchLoop: nkruntime.MatchLoopFunction<State> = function(ctx: nkruntime.Cont
                     logger.debug('Bad data received: %v', error);
                     continue;
                 }
-                if (state.board[msg.position]) {
-                    // Client sent a position outside the board, or one that has already been played.
-                    dispatcher.broadcastMessage(OpCode.REJECTED, null, [message.sender]);
-                    continue;
-                }
 
-                // Update the game state.
-                state.board[msg.position] = mark;
-                state.mark = mark === Mark.O ? Mark.X : Mark.O;
-                state.deadlineRemainingTicks = calculateDeadlineTicks(state.label);
-
-                // Check if game is over through a winning move.
-                const [winner, winningPos] = winCheck(state.board, mark);
-                if (winner) {
-                    state.winner = mark;
-                    state.winnerPositions = winningPos;
-                    state.playing = false;
-                    state.deadlineRemainingTicks = 0;
-                    state.nextGameRemainingTicks = delaybetweenGamesSec * tickRate;
-                }
-                // Check if game is over because no more moves are possible.
-                let tie = state.board.every(v => v !== null);
-                if (tie) {
-                    // Update state to reflect the tie, and schedule the next game.
-                    state.playing = false;
-                    state.deadlineRemainingTicks = 0;
-                    state.nextGameRemainingTicks = delaybetweenGamesSec * tickRate;
-                }
-
-                let opCode: OpCode
-                let outgoingMsg: Message
-                if (state.playing) {
-                    opCode = OpCode.UPDATE
-                    let msg: UpdateMessage = {
-                        board: state.board,
-                        mark: state.mark,
-                        deadline: t + Math.floor(state.deadlineRemainingTicks/tickRate),
-                    }
-                    outgoingMsg = msg;
-                } else {
-                    opCode = OpCode.DONE
-                    let msg: DoneMessage = {
-                        board: state.board,
-                        winner: state.winner,
-                        winnerPositions: state.winnerPositions,
-                        nextGameStart: t + Math.floor(state.nextGameRemainingTicks/tickRate),
-                    }
-                    outgoingMsg = msg;
-                }
-                dispatcher.broadcastMessage(opCode, JSON.stringify(outgoingMsg));
-                break;
-            default:
-                // No other opcodes are expected from the client, so automatically treat it as an error.
-                dispatcher.broadcastMessage(OpCode.REJECTED, null, [message.sender]);
-                logger.error('Unexpected opcode received: %d', message.opCode);
+                // TODO: fix bounds later
+                let indexToUpdate = state.playerPositions.playerIds.findIndex(playerPosition => playerPosition.playerId === sender.userId);
+                state.playerPositions.playerIds[indexToUpdate] = { playerId: sender.userId, position: msg.position}               
         }
     }
-
-    // Keep track of the time remaining for the player to submit their move. Idle players forfeit.
-    if (state.playing) {
-        state.deadlineRemainingTicks--;
-        if (state.deadlineRemainingTicks <= 0 ) {
-            // The player has run out of time to submit their move.
-            state.playing = false;
-            state.winner = state.mark === Mark.O ? Mark.X : Mark.O;
-            state.deadlineRemainingTicks = 0;
-            state.nextGameRemainingTicks = delaybetweenGamesSec * tickRate;
-
-            let msg: DoneMessage = {
-                board: state.board,
-                winner: state.winner,
-                nextGameStart: t + Math.floor(state.nextGameRemainingTicks/tickRate),
-                winnerPositions: null,
-            }
-            dispatcher.broadcastMessage(OpCode.DONE, JSON.stringify(msg));
-        }
+    let outgoingMsg: UpdateMessage = {
+        playerPositions: state.playerPositions
     }
+    dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(outgoingMsg));
 
     return { state };
 }
+
+function msecToSec(time: number) {
+    return time * 1000;
+}
+
 
 let matchTerminate: nkruntime.MatchTerminateFunction<State> = function(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State, graceSeconds: number) {
     return { state };
@@ -310,14 +237,6 @@ let matchTerminate: nkruntime.MatchTerminateFunction<State> = function(ctx: nkru
 
 let matchSignal: nkruntime.MatchSignalFunction<State> = function(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: State) {
     return { state };
-}
-
-function calculateDeadlineTicks(l: MatchLabel): number {
-    if (l.fast === 1) {
-        return turnTimeFastSec * tickRate;
-    } else {
-        return turnTimeNormalSec * tickRate;
-    }
 }
 
 function connectedPlayers(s: State): number {
