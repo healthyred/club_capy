@@ -26,22 +26,23 @@ func spawn_player(id, x, y):
 	player.add_to_group(PLAYER_GROUP)
 	add_child(player)
 
+
 func handle_update(match_data):
-	var start_message = JSON.parse(match_data)
+	var start_message = JSON.parse(match_data).result
 	var dict = {}
 	for player in get_tree().get_nodes_in_group(PLAYER_GROUP):
-		dict[player.id] = player
-	for player_info in start_message.playerPositions.playerIDs:
+		dict[player._id] = player
+	for player_info in start_message.playerPositions.playerIds:
 		var player_id = player_info.playerId
 		var position = player_info.position
 		var x = position[0]
 		var y = position[1]
 		if dict.has(player_id):
-			print("Updating player %s to position (%s, %s)", player_id, x, y)
+			print("Updating player %s to position (%s, %s)" % [player_id, x, y])
 			var player = dict[player_id]
-			player.update(x, y)
+			player.update_position(x, y)
 		else:
-			print("Spawning player %s at position (%s, %s)", player_id, x, y)
+			print("Spawning player %s at position (%s, %s)" % [player_id, x, y])
 			spawn_player(player_id, x, y)
 		
 
@@ -56,19 +57,19 @@ func _on_match_state(match_state : NakamaRTAPI.MatchData):
 		REJECTED:
 			print("Match state: Rejected")
 		_:
-			print("Match staet: Unsupported op code: %s", match_state.op_code)
+			print("Match state: Unsupported op code: %s" % match_state.op_code)
 
 func send_move_request(position):
 	var move_request = {
 		position = [position.x, position.y]
 	}
 	var move_request_json = JSON.print(move_request)
-	print("Sending move request: %s", move_request_json)
+	print("Sending move request: %s" % move_request_json)
 	yield(socket.send_match_state_async(current_match.match_id, MOVE, move_request_json), "completed")
 
 func _input(event):
 	if event is InputEventMouseButton:
 		if event.pressed:
-			print("Mouse Click at %s", event.position)
+			print("Mouse Click at %s" % event.position)
 			send_move_request(event.position)
 	

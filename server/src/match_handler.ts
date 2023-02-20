@@ -18,6 +18,7 @@ let matchInit: nkruntime.MatchInitFunction<State> = function (
   nk: nkruntime.Nakama,
   params: { [key: string]: string }
 ) {
+  logger.debug("Initializing match");
   const fast = !!params["fast"];
 
   var label: MatchLabel = {
@@ -103,6 +104,7 @@ let matchJoin: nkruntime.MatchJoinFunction<State> = function (
   state: State,
   presences: nkruntime.Presence[]
 ) {
+  logger.debug("Player joining match: " + ctx.userId);
   const t = msecToSec(Date.now());
   for (const presence of presences) {
     state.emptyTicks = 0;
@@ -155,7 +157,7 @@ let matchLoop: nkruntime.MatchLoopFunction<State> = function (
   state: State,
   messages: nkruntime.MatchMessage[]
 ) {
-  logger.error("Running match loop. Tick: %d", tick);
+  //   logger.debug("Running match loop. Tick: %d", tick);
 
   if (connectedPlayers(state) + state.joinsInProgress === 0) {
     state.emptyTicks++;
@@ -198,7 +200,7 @@ let matchLoop: nkruntime.MatchLoopFunction<State> = function (
   let outgoingMsg: UpdateMessage = {
     playerPositions: state.playerPositions,
   };
-  logger.debug("Sending outgoing message %v", outgoingMsg);
+  //   logger.debug("Sending outgoing message %v", outgoingMsg);
   dispatcher.broadcastMessage(OpCode.UPDATE, JSON.stringify(outgoingMsg));
 
   return { state };

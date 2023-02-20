@@ -10,5 +10,9 @@ func _ready():
 
 func initialize(id, x, y):
 	self._id = id
-	self.transform.x = x
-	self.transform.y = y
+	self.position.x = x
+	self.position.y = y
+
+func update_position(x, y):
+	self.position.x = x
+	self.position.y = y

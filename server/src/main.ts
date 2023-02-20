@@ -4,8 +4,7 @@ function InitModule(
   nk: nkruntime.Nakama,
   initializer: nkruntime.Initializer
 ) {
-  const rpcIdFindMatch = "find_match_js";
-  initializer.registerRpc(rpcIdFindMatch, rpcFindMatch);
+  initializer.registerRpc("create_match_js", rpcCreateMatch);
   initializer.registerMatch(moduleName, {
     matchInit,
     matchJoinAttempt,

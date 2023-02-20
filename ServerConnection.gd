@@ -12,7 +12,7 @@ func _join_match():
 	var result : NakamaAPI.ApiMatchList = yield(client.list_matches_async(session, 0, 1024, 1, true, "", ""), "completed")
 	var selected_match = null
 	for m in result.matches:
-		print("%s: %s players", m.match_id, m.size)
+		print("%s: %s players" % [m.match_id, m.size])
 		if selected_match == null:
 			selected_match = m
 	if selected_match != null:
@@ -20,7 +20,9 @@ func _join_match():
 		current_match = yield(socket.join_match_async(selected_match.match_id), "completed")
 	else:
 		print("No matches found, creating a new one")
-		current_match = yield(socket.create_match_async(), "completed")
+		var match_info : NakamaAPI.ApiRpc = yield(socket.rpc_async("create_match_js"), "completed")
+		var match_id = JSON.parse(match_info.payload).result.matchId
+		current_match = yield(socket.join_match_async(match_id), "completed")
 	game_client = get_node("GameClient")
 	game_client.initialize(current_match, socket)
 
