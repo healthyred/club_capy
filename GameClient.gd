@@ -8,14 +8,16 @@ const MOVE = 101
 const PLAYER_GROUP = "Player"
 
 export (PackedScene) var player_scene
-onready var server_connection := $ServerConnection
 
-func _ready():
-	var socket : NakamaSocket = server_connection.socket
+var current_match : NakamaRTAPI.Match
+var socket : NakamaSocket 
+
+func initialize(p_match, p_socket):
+	current_match = p_match
+	socket = p_socket
 	var _ignore = socket.connect("received_match_state", self, "_on_match_state")
 
 func get_user_id():
-	var current_match : NakamaRTAPI.Match = server_connection.current_match
 	return current_match.self_user.user_id
 
 func spawn_player(id, x, y):
@@ -57,12 +59,12 @@ func _on_match_state(match_state : NakamaRTAPI.MatchData):
 			print("Match staet: Unsupported op code: %s", match_state.op_code)
 
 func send_move_request(position):
-	var current_match : NakamaRTAPI.Match = server_connection.current_match
-	var socket : NakamaSocket = server_connection.socket
 	var move_request = {
 		position = [position.x, position.y]
 	}
-	yield(socket.send_match_state_async(current_match.id, MOVE, JSON.print(move_request)), "completed")
+	var move_request_json = JSON.print(move_request)
+	print("Sending move request: %s", move_request_json)
+	yield(socket.send_match_state_async(current_match.match_id, MOVE, move_request_json), "completed")
 
 func _input(event):
 	if event is InputEventMouseButton:
