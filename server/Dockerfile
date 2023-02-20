@@ -1,4 +1,4 @@
-FROM node:alpine AS node-builder
+FROM node:18 AS node-builder
 
 WORKDIR /backend
 
