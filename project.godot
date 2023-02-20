@@ -6,113 +6,15 @@
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
-config_version=4
-
-_global_script_classes=[ {
-"base": "RefCounted",
-"class": "NakamaAPI",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/api/NakamaAPI.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaAsyncResult",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/utils/NakamaAsyncResult.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaClient",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/client/NakamaClient.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaException",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/utils/NakamaException.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaLogger",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/utils/NakamaLogger.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaMultiplayerBridge",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/utils/NakamaMultiplayerBridge.gd"
-}, {
-"base": "MultiplayerPeerExtension",
-"class": "NakamaMultiplayerPeer",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/utils/NakamaMultiplayerPeer.gd"
-}, {
-"base": "NakamaAsyncResult",
-"class": "NakamaRTAPI",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/api/NakamaRTAPI.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaRTMessage",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/api/NakamaRTMessage.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaSerializer",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/utils/NakamaSerializer.gd"
-}, {
-"base": "NakamaAsyncResult",
-"class": "NakamaSession",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/api/NakamaSession.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaSocket",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/socket/NakamaSocket.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaStorageObjectId",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/api/NakamaStorageObjectId.gd"
-}, {
-"base": "RefCounted",
-"class": "NakamaWriteStorageObject",
-"language": "GDScript",
-"path": "res://nakama-godot/addons/com.heroiclabs.nakama/api/NakamaWriteStorageObject.gd"
-} ]
-_global_script_class_icons={
-"NakamaAPI": "",
-"NakamaAsyncResult": "",
-"NakamaClient": "",
-"NakamaException": "",
-"NakamaLogger": "",
-"NakamaMultiplayerBridge": "",
-"NakamaMultiplayerPeer": "",
-"NakamaRTAPI": "",
-"NakamaRTMessage": "",
-"NakamaSerializer": "",
-"NakamaSession": "",
-"NakamaSocket": "",
-"NakamaStorageObjectId": "",
-"NakamaWriteStorageObject": ""
-}
+config_version=5
 
 [application]
 
-config/name="club_capy"
-config/icon="res://icon.png"
-
-[autoload]
-
-Nakama="*res://nakama-godot/addons/com.heroiclabs.nakama/Nakama.gd"
-
-[gui]
-
-common/drop_mouse_on_gui_input_disabled=true
-
-[physics]
-
-common/enable_pause_aware_picking=true
+config/name="Club Capy"
+config/features=PackedStringArray("4.0", "GL Compatibility")
+config/icon="res://icon.svg"
 
 [rendering]
 
-environment/default_environment="res://default_env.tres"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
