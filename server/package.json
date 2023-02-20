@@ -13,6 +13,7 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "es6-polyfill": "^1.1.0",
     "nakama-runtime": "github:heroiclabs/nakama-common"
   }
 }
